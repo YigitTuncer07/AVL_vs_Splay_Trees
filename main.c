@@ -1,19 +1,38 @@
+//Yigit Tuncer
+//150121073
+
 #include <stdio.h>
 #include <stdlib.h>
 
-// Create NodeA
-struct NodeA {
+//This node is for the linked list that will
+//hold the input values.
+struct NodeL {
     int key;
+    struct NodeL *nextNode;
+};
+
+//This node if for the AVL tree
+struct NodeA {
+    short key;
     struct NodeA *left;
     struct NodeA *right;
     int height;
 };
 
+//This node is for the Splay Tree
+struct NodeS {
+    short key;
+    struct NodeA *left;
+    struct NodeA *right;
+};
+
+typedef struct NodeL NodeL;
 typedef struct NodeA NodeA;
+typedef struct NodeS NodeS;
 
-int max(int a, int b);
+NodeL *head = NULL;
+NodeA *rootA = NULL;
 
-// Calculate height
 int height(NodeA *N) {
     if (N == NULL)
         return 0;
@@ -24,31 +43,19 @@ int max(int a, int b) {
     return (a > b) ? a : b;
 }
 
-// Create a node
-NodeA *newNode(int key) {
-    NodeA *node = (struct NodeA *) malloc(sizeof(struct NodeA));
-    node->key = key;
-    node->left = NULL;
-    node->right = NULL;
-    node->height = 1;
-    return (node);
+NodeA *rightRotate(NodeA *node) {
+    NodeA *tempNode1 = node->left;
+    NodeA *tempNode2 = tempNode1->right;
+
+    tempNode1->right = node;
+    node->left = tempNode2;
+
+    node->height = max(height(node->left), height(node->right)) + 1;
+    tempNode1->height = max(height(tempNode1->left), height(tempNode1->right)) + 1;
+
+    return tempNode1;
 }
 
-// Right rotate
-NodeA *rightRotate(struct NodeA *y) {
-    struct NodeA *x = y->left;
-    struct NodeA *T2 = x->right;
-
-    x->right = y;
-    y->left = T2;
-
-    y->height = max(height(y->left), height(y->right)) + 1;
-    x->height = max(height(x->left), height(x->right)) + 1;
-
-    return x;
-}
-
-// Left rotate
 NodeA *leftRotate(struct NodeA *x) {
     struct NodeA *y = x->right;
     struct NodeA *T2 = y->left;
@@ -62,42 +69,59 @@ NodeA *leftRotate(struct NodeA *x) {
     return y;
 }
 
-// Get the balance factor
-int getBalance(NodeA *N) {
+int isBalanced(NodeA *N) {
     if (N == NULL)
         return 0;
     return height(N->left) - height(N->right);
 }
 
-// Insert node
-NodeA *insertNode(NodeA *node, int key) {
-    // Find the correct position to insertNode the node and insertNode it
-    if (node == NULL)
-        return (newNode(key));
+//This function loops until it finds the
+//appropriate spot for our new node. Once found
+//the new node will be added then we will backtrack
+//and check for imbalances on our nodes.
+NodeA *insertAVL(NodeA *node, short key) {
 
+    //If we are at the end of the tree we add the node.
+    if (node == NULL) {
+        NodeA *temp = (NodeA *) malloc(sizeof( NodeA));
+        temp->key = key;
+        temp->right = NULL;
+        temp->left = NULL;
+        temp->height = 0;
+        return temp;
+    }
+
+    //Loops until finding the correct spot
     if (key < node->key)
-        node->left = insertNode(node->left, key);
+        node->left = insertAVL(node->left, key);
     else if (key > node->key)
-        node->right = insertNode(node->right, key);
-    else
+        node->right = insertAVL(node->right, key);
+    else {
+        printf("Node already exists ");
         return node;
+    }
 
-    // Update the balance factor of each node and
-    // Balance the tree
+
     node->height = 1 + max(height(node->left), height(node->right));
 
-    int balance = getBalance(node);
+    //Checks for inballance
+    int balance = isBalanced(node);
+
+    //LEFT LEFT
     if (balance > 1 && key < node->left->key)
         return rightRotate(node);
 
+    //RIGHT RIGHT
     if (balance < -1 && key > node->right->key)
         return leftRotate(node);
 
+    //LEFT RIGHT
     if (balance > 1 && key > node->left->key) {
         node->left = leftRotate(node->left);
         return rightRotate(node);
     }
 
+    //RIGHT LEFT
     if (balance < -1 && key < node->right->key) {
         node->right = rightRotate(node->right);
         return leftRotate(node);
@@ -106,53 +130,110 @@ NodeA *insertNode(NodeA *node, int key) {
     return node;
 }
 
-void print2DUtil(NodeA* root, int space)
-{
+void printTreeUtil(NodeA* root, int space) {
     // Base case
     if (root == NULL)
         return;
 
     // Increase distance between levels
-    space +=3;
+    space +=10;
 
     // Process right child first
-    print2DUtil(root->right, space);
+    printTreeUtil(root->right, space);
 
     // Print current node after space
     // count
     printf("\n");
     int i;
-    for (i = 3; i < space; i++)
+    for (i = 10; i < space; i++)
         printf(" ");
     printf("%d\n", root->key);
 
     // Process left child
-    print2DUtil(root->left, space);
+    printTreeUtil(root->left, space);
 }
 
-// Wrapper over print2DUtil()
-void print2D(NodeA* root)
-{
+void printTree(NodeA* root) {
     // Pass initial space count as 0
-    print2DUtil(root, 0);
+    printTreeUtil(root, 0);
+}
+
+void addNodeToList(short value) {
+
+    //Creates the node to be added.
+    NodeL *newNode;
+    newNode = (NodeL*)malloc(sizeof(NodeL));
+    newNode->key = value;
+    newNode->nextNode = NULL;
+
+    //Checks if the list is empty.
+    //If empty makes new node head and returns.
+    if(head == NULL){
+        head = newNode;
+        return;
+    }
+
+
+    NodeL *temp = NULL;
+    temp = head;
+    while (temp->nextNode != NULL){
+        temp = temp->nextNode;
+    }
+    temp->nextNode = newNode;
+}
+
+void printList(){
+    //Checks if list is empty
+    if (head != NULL){
+        //Creates a temporary node to loop from
+        NodeL *tempHead = head;
+        //Checks if the list is over
+        while (tempHead->nextNode != NULL){
+            printf("%d->", tempHead->key);
+            tempHead = tempHead->nextNode;
+        }
+        printf("%d", tempHead->key);
+    } else {
+        printf("ERROR: no such list or is empty\n");
+        return;
+    }
 }
 
 int main() {
-    NodeA *root = NULL;
+    FILE *input = fopen("C:\\Users\\admin\\Desktop\\AVL_vs_Splay_Trees\\input.txt","r");
 
-    root = insertNode(root, 48);
-    root = insertNode(root,16);
-    root = insertNode(root,24);
-    root = insertNode(root,20);
-    root = insertNode(root,8);
-    root = insertNode(root,12);
-    root = insertNode(root,32);
-    root = insertNode(root,54);
-    root = insertNode(root,72);
-    root = insertNode(root,18);
-    root = insertNode(root,96);
+    //Takes file as input.
+//    if(argc>=2) {
+//        input = fopen(argv[1], "r");
+//    } else {
+//        printf("ERROR");
+//        return -1;
+//    }
 
-    print2D(root);
+    //Check if the input file is empty or if it does not exist.
+    if (input == NULL) {
+        printf("ERROR: the input file is empty or it does not exist\n");
+        return -1;
+    }
+    short x;
+
+    while (fscanf(input, "%hd", &x) == 1){
+        addNodeToList(x);
+    }
+
+    rootA = insertAVL(rootA, 48);
+    rootA = insertAVL(rootA, 16);
+    rootA = insertAVL(rootA, 24);
+    rootA = insertAVL(rootA, 20);
+    rootA = insertAVL(rootA, 8);
+    rootA = insertAVL(rootA, 12);
+    rootA = insertAVL(rootA, 32);
+    rootA = insertAVL(rootA, 54);
+    rootA = insertAVL(rootA, 72);
+    rootA = insertAVL(rootA, 18);
+    rootA = insertAVL(rootA, 96);
+
+    printTree(rootA);
 
     return 0;
 }

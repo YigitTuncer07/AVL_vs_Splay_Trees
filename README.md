@@ -8,7 +8,7 @@ To make the file work simply write the following snippet into a terminal after c
 repository.
 
 ```bash
-./main.c input.txt
+./main.exe input.txt
 ```
 
 You can edit the trees by changing the content of input.txt.

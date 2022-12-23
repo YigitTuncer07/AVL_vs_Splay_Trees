@@ -342,32 +342,6 @@ void addNodeToList(short value) {
     temp->nextNode = newNode;
 }
 
-void printTree(NodeA* node, int space) {
-    //If it ended it stops
-    if (node == NULL){
-        return;
-    }
-
-    //Increases distance
-    space +=10;
-
-    //Prints the right child first
-    printTree(node->right, space);
-
-    //Prints the spaces
-    printf("\n");
-    int i;
-    for (i = 10; i < space; i++) {
-        printf(" ");
-    }
-
-    //Prints the key
-    printf("%d\n", node->key);
-
-    //Prints left side
-    printTree(node->left, space);
-}
-
 int main(int argc, char* argv[]) {
 
     //Instantiates file
@@ -404,9 +378,6 @@ int main(int argc, char* argv[]) {
         //Advances linked list
         temp = temp->nextNode;
     }
-
-    //Prints the AVL tree
-    printTree(root,0);
 
     //After we are done calculating the cost of the AVL tree we reset the root
     //and the linked list so that we can build the splay tree

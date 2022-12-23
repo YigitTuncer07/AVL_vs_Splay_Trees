@@ -1,6 +1,7 @@
 //Yigit Tuncer
 //150121073
 
+//Imports
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -16,64 +17,89 @@ struct NodeA {
     short key;
     struct NodeA *left;
     struct NodeA *right;
-    int height;
+    unsigned int height;
 };
 
-//This node is for the Splay Tree
-struct NodeS {
-    short key;
-    struct NodeA *left;
-    struct NodeA *right;
-};
-
+//Defines names
 typedef struct NodeL NodeL;
 typedef struct NodeA NodeA;
-typedef struct NodeS NodeS;
 
+//Creates heads and roots for data structs
 NodeL *head = NULL;
-NodeA *rootA = NULL;
+NodeA *root = NULL;
 
-int height(NodeA *N) {
-    if (N == NULL)
+unsigned int costOfAVLTree;
+unsigned int costOfSplayTree;
+
+//Returns the largest of x and y. If equal returns y
+int max(int x, int y) {
+    if (x > y){
+        return x;
+    } else {
+        return y;
+    }
+}
+
+//Checks if the node is null. If it is not returns the height.
+//Or else it returns 0.
+int height(NodeA *node) {
+    if (node != NULL){
+        return max(height(node->left), height(node->right)) + 1;//Finds the highest subtree and adds 1
+    } else {
         return 0;
-    return N->height;
+    }
 }
 
-int max(int a, int b) {
-    return (a > b) ? a : b;
-}
-
-NodeA *rightRotate(NodeA *node) {
+//Does the left left rotation as shown in the slides
+NodeA *leftLeftRotation(NodeA *node) {
+    //These 4 lines rotate the nodes
     NodeA *tempNode1 = node->left;
     NodeA *tempNode2 = tempNode1->right;
-
     tempNode1->right = node;
     node->left = tempNode2;
 
-    node->height = max(height(node->left), height(node->right)) + 1;
-    tempNode1->height = max(height(tempNode1->left), height(tempNode1->right)) + 1;
+    //Increments the heights of the nodes
+    node->height++;
+    tempNode1->height++;
 
+    //Returns new top node
     return tempNode1;
 }
 
-NodeA *leftRotate(struct NodeA *x) {
-    struct NodeA *y = x->right;
-    struct NodeA *T2 = y->left;
+//Does the right right rotation as shown in the slides
+NodeA *rightRightRotation(NodeA *node) {
+    //These 4 lines rotate the nodes
+    NodeA *tempNode1 = node->right;
+    NodeA *tempNode2 = tempNode1->left;
+    tempNode1->left = node;
+    node->right = tempNode2;
 
-    y->left = x;
-    x->right = T2;
+    //Increments the heights of the nodes
+    node->height++;
+    tempNode1->height++;
 
-    x->height = max(height(x->left), height(x->right)) + 1;
-    y->height = max(height(y->left), height(y->right)) + 1;
-
-    return y;
+    //Returns new top node
+    return tempNode1;
 }
 
-int isBalanced(NodeA *N) {
-    if (N == NULL)
-        return 0;
-    return height(N->left) - height(N->right);
+//Does the right left rotation
+//This is used for both the avl tree and the splay tree
+NodeA *rightLeftRotation(NodeA *node){
+    //Does a right rotation on the right node
+    node->right = leftLeftRotation(node->right);
+    //Then does a left rotation
+    return rightRightRotation(node);
 }
+
+//Does the left right rotation
+//This is used for both the avl tree and the splay tree
+NodeA *leftRightRotation(NodeA *node){
+    //Does a right rotation on the right node
+    node->left = rightRightRotation(node->left);
+    //Then does a left rotation
+    return leftLeftRotation(node);
+}
+
 
 //This function loops until it finds the
 //appropriate spot for our new node. Once found
@@ -85,6 +111,118 @@ NodeA *insertAVL(NodeA *node, short key) {
     if (node == NULL) {
         NodeA *temp = (NodeA *) malloc(sizeof( NodeA));
         temp->key = key;
+        temp->height = 0;
+        temp->right = NULL;
+        temp->left = NULL;
+        return temp;
+    }
+
+    //Loops until finding the correct spot
+    //If the key is smaller than the node then it goes left
+    if (key < node->key) {
+        costOfAVLTree++; //Added the comparison
+        node->left = insertAVL(node->left, key);//If the key is larger than the node then it goes right
+    }
+    else if (key > node->key) {
+        costOfAVLTree++; //Added the comparison
+        node->right = insertAVL(node->right, key);
+    }
+    else {
+        //If it is the same it does nothing
+        return node;
+    }
+
+    //Corrects the height of nodes
+    node->height = height(node);
+
+    //This part does all the needed transformations while backtracking
+    //through the recursive call chain. It utilises the fact that if there
+    //is an imbalance it must lay in between the root and the added key
+
+    short heightDiff = 0;
+
+    //Finds the difference of height between the two child nodes
+    if (node != NULL){
+        heightDiff = height(node->left) - height(node->right);
+    }
+
+    //If height diff is larger than 1 it means the imbalance is on the left
+    if (heightDiff > 1){
+        //If the key is smaller than the left nodes key that means the problem is on the left
+        if (key < node->left->key){
+            costOfAVLTree++; //Added the comparison
+            costOfAVLTree++; //Added the rotation
+            return leftLeftRotation(node);
+        }
+        // If it is not on the left then the imbalance must be on the right
+        if (key > node->left->key){
+            costOfAVLTree++; //Added the comparison
+            costOfAVLTree += 2; //Added the double rotation
+            return leftRightRotation(node);
+        }
+    }
+
+    // If the height difference is smaller than -1 then the imbalance is on the right
+    if (heightDiff < -1){
+        //If the key is larger then the imbalance is on the right
+        if (key > node->right->key){
+            costOfAVLTree++; //Added the comparison
+            costOfAVLTree++; //Added the rotation
+            return rightRightRotation(node);
+        }
+        //If the key is smaller then the imbalance must be on the left
+        if (key < node->right->key){
+            costOfAVLTree++; //Added the comparison
+            costOfAVLTree += 2; //Added the double rotation
+            return rightLeftRotation(node);
+        }
+    }
+
+    //If no problem is found it returns the node as is.
+    return node;
+}
+
+//Does the zig rotation (left)
+NodeA* zig(NodeA *node) {
+    NodeA *tempNode = node->left;
+    node->left = tempNode->right;
+    tempNode->right = node;
+    return tempNode;
+}
+
+//Does the zag rotation (right)
+NodeA* zag(NodeA *node) {
+    NodeA *y = node->right;
+    node->right = y->left;
+    y->left = node;
+    return y;
+}
+
+//Does the zig zig rotation (left left)
+NodeA* zigZig(NodeA *node){
+    node = zig(node);
+    return zig(node);
+}
+
+//Does the zag zag rotation (right right)
+NodeA* zagZag(NodeA *node){
+    node = zag(node);
+    return zag(node);
+}
+//There is no zigZag and zagZig as they are the same as the double rotations used in
+//the avl tree implementation
+
+//Inserts the given key into the tree
+//If it already exists it does nothing
+//After the node is inserted the recursive
+//call chain is backtracked and the key is splayed
+//as we approach the root
+NodeA* insertSplay(NodeA *node, short key) {
+
+    //If we are at the end of the tree we add the node.
+    if (node == NULL) {
+        NodeA *temp = (NodeA *) malloc(sizeof(NodeA));
+        temp->key = key;
         temp->right = NULL;
         temp->left = NULL;
         temp->height = 0;
@@ -92,72 +230,93 @@ NodeA *insertAVL(NodeA *node, short key) {
     }
 
     //Loops until finding the correct spot
-    if (key < node->key)
-        node->left = insertAVL(node->left, key);
-    else if (key > node->key)
-        node->right = insertAVL(node->right, key);
+    //If the key is smaller than the node then it goes left
+    if (key < node->key) {
+        costOfSplayTree++; //Added the comparison
+        node->left = insertSplay(node->left, key);
+    }
+    else if (key > node->key) { //If the key is larger than the node then it goes right
+        costOfSplayTree++; //Added the comparison
+        node->right = insertSplay(node->right, key);
+    }
     else {
-        printf("Node already exists ");
+        //If it is the same it does nothing
         return node;
     }
 
-
-    node->height = 1 + max(height(node->left), height(node->right));
-
-    //Checks for inballance
-    int balance = isBalanced(node);
-
-    //LEFT LEFT
-    if (balance > 1 && key < node->left->key)
-        return rightRotate(node);
-
-    //RIGHT RIGHT
-    if (balance < -1 && key > node->right->key)
-        return leftRotate(node);
-
-    //LEFT RIGHT
-    if (balance > 1 && key > node->left->key) {
-        node->left = leftRotate(node->left);
-        return rightRotate(node);
+    //If the node is the root it checks if it should do a zig or a zag rotation
+    if (node == root){
+        if (node->key == key){ //If the key is at the root then no need to do anything
+            costOfSplayTree++; //Added the comparison
+            return node;
+        } else {
+            if (node->right != NULL){
+                if (node->right->key == key){ //If the node is on the right we do zag
+                    costOfSplayTree++; //Added the comparison
+                    costOfSplayTree++; //Added the rotation
+                    return zag(node);
+                }
+            }
+            if (node->left != NULL){
+                if (node->left->key == key){ //If the node is on the left we do zig
+                    costOfSplayTree++; //Added the comparison
+                    costOfSplayTree++; //Added the rotation
+                    return zig(node);
+                }
+            }
+        }
     }
 
-    //RIGHT LEFT
-    if (balance < -1 && key < node->right->key) {
-        node->right = rightRotate(node->right);
-        return leftRotate(node);
+    //This part searches for our key. If it is found then the
+    //appropriate transformation is applied
+    if (node->right != NULL && node->key < key){ //If the key is larger than our node then it is on the right
+        costOfSplayTree++; //Added the comparison
+        if (node->right->key < key && node->right->right != NULL){ // If it is larger than our node then it is on the right
+            costOfSplayTree++; //Added the comparison
+            if (node->right->right->key == key){ //Checks if this is our key
+                //Does the zag zag (right right) rotation
+                costOfSplayTree++; //Added the comparison
+                costOfSplayTree += 2; //Added the rotation
+                return zagZag(node);
+
+            }
+        } else if (node->right->left != NULL){
+            if(node->right->left->key == key){//Checks if this is our key
+                //Does the zag zig (right left) rotation
+                //This is the same method used in the avl tree because it is the exact same thing
+                costOfSplayTree++; //Added the comparison
+                costOfSplayTree += 2; //Added the rotation
+                return rightLeftRotation(node);
+            }
+        }
+
+    }
+    if (node->left != NULL && node->key > key){ //If the key is smaller than our node then it is on the left
+        costOfSplayTree++; //Added the comparison
+        if (node->left->key < key && node->left->right != NULL){ // If it is larger than our node then it is on the right
+            costOfSplayTree++; //Added the comparison
+            if (node->left->right->key == key){ //Checks if this is our key
+                //Does the zig zag (left right) rotation
+                //This is the same method used in the avl tree because it is the exact same thing
+                costOfSplayTree++; //Added the comparison
+                costOfSplayTree += 2; //Added the rotation
+                return leftRightRotation(node);
+            }
+        } else if (node->left->left != NULL){
+            if (node->left->left->key == key){//Checks if this is our key
+                //Does the zig zig (left left) rotation
+                costOfSplayTree++; //Added the comparison
+                costOfSplayTree += 2; //Added the rotation
+                return zigZig(node);
+            }
+        }
     }
 
+    //If no problem is found it returns the node as is.
     return node;
 }
 
-void printTreeUtil(NodeA* root, int space) {
-    // Base case
-    if (root == NULL)
-        return;
-
-    // Increase distance between levels
-    space +=10;
-
-    // Process right child first
-    printTreeUtil(root->right, space);
-
-    // Print current node after space
-    // count
-    printf("\n");
-    int i;
-    for (i = 10; i < space; i++)
-        printf(" ");
-    printf("%d\n", root->key);
-
-    // Process left child
-    printTreeUtil(root->left, space);
-}
-
-void printTree(NodeA* root) {
-    // Pass initial space count as 0
-    printTreeUtil(root, 0);
-}
-
+//A function to add a node to the end of the linked list
 void addNodeToList(short value) {
 
     //Creates the node to be added.
@@ -173,67 +332,67 @@ void addNodeToList(short value) {
         return;
     }
 
-
     NodeL *temp = NULL;
     temp = head;
+
+    //Loops to the end of the list
     while (temp->nextNode != NULL){
         temp = temp->nextNode;
     }
     temp->nextNode = newNode;
 }
 
-void printList(){
-    //Checks if list is empty
-    if (head != NULL){
-        //Creates a temporary node to loop from
-        NodeL *tempHead = head;
-        //Checks if the list is over
-        while (tempHead->nextNode != NULL){
-            printf("%d->", tempHead->key);
-            tempHead = tempHead->nextNode;
-        }
-        printf("%d", tempHead->key);
-    } else {
-        printf("ERROR: no such list or is empty\n");
-        return;
-    }
-}
+int main(int argc, char* argv[]) {
 
-int main() {
-    FILE *input = fopen("C:\\Users\\admin\\Desktop\\AVL_vs_Splay_Trees\\input.txt","r");
+    //Instantiates file
+    FILE *input;
 
     //Takes file as input.
-//    if(argc>=2) {
-//        input = fopen(argv[1], "r");
-//    } else {
-//        printf("ERROR");
-//        return -1;
-//    }
+    if(argc>=2) {
+        input = fopen(argv[1], "r");
+    } else {
+        printf("ERROR WHILE OPENING FILE\n");
+        return -1;
+    }
 
     //Check if the input file is empty or if it does not exist.
     if (input == NULL) {
         printf("ERROR: the input file is empty or it does not exist\n");
-        return -1;
+        return -2;
     }
-    short x;
 
+    //This part read the integers and puts them into the linked list
+    short x;
     while (fscanf(input, "%hd", &x) == 1){
         addNodeToList(x);
     }
 
-    rootA = insertAVL(rootA, 48);
-    rootA = insertAVL(rootA, 16);
-    rootA = insertAVL(rootA, 24);
-    rootA = insertAVL(rootA, 20);
-    rootA = insertAVL(rootA, 8);
-    rootA = insertAVL(rootA, 12);
-    rootA = insertAVL(rootA, 32);
-    rootA = insertAVL(rootA, 54);
-    rootA = insertAVL(rootA, 72);
-    rootA = insertAVL(rootA, 18);
-    rootA = insertAVL(rootA, 96);
+    //This part creates a tree using the values in the linked list
+    //Creates a temporary head to loop from
+    NodeL *temp = head;
 
-    printTree(rootA);
+    //Loops through the list
+    while (temp != NULL){
+        //Adds node to avl tree
+        root = insertAVL(root, temp->key);
+        //Advances linked list
+        temp = temp->nextNode;
+    }
 
+    //After we are done calculating the cost of the AVL tree we reset the root
+    //and the linked list so that we can build the splay tree
+    root = NULL;
+    temp = head;
+
+    //Loops through the list
+    while (temp != NULL){
+        //Adds node to splay tree
+        root = insertSplay(root, temp->key);
+        //Advances through list
+        temp = temp->nextNode;
+    }
+
+    //Prints the result of the calculations
+    printf("Cost of the AVL tree : %d\nCost of the Splay tree: %d",costOfAVLTree,costOfSplayTree);
     return 0;
 }

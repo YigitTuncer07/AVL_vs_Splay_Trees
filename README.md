@@ -13,4 +13,5 @@ repository.
 
 You can edit the trees by changing the content of input.txt.
 
-
+If you want to see the trees clone the printTreeVersion branch as it prints bothtrees and 
+then shows you the result of the comparison. For more information you can read the documentation.
